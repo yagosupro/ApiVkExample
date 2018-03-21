@@ -2,10 +2,13 @@ package com.example.bob_book.apivkexample;
 
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -35,12 +38,13 @@ import java.util.List;
 
 public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> implements Serializable {
 
-    List<ItemRealm> itemRealmList=new ArrayList<>();
+    List<ItemRealm> itemRealmList = new ArrayList<>();
 //    List<Item> items = new ArrayList<>();
 
     private OnItemClickListener mListener;
+    private OnLongClickListener mLongListener;
 
-    public static class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+    public static class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener,View.OnCreateContextMenuListener {
 
         //Обьявляем поля которые будем заполнять
         TextView timeView;
@@ -49,6 +53,7 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> implements
         CardView rv;
         View fl;
         private OnItemClickListener mListener;
+        private OnLongClickListener mLongListener;
 
 
         public ViewHolder(final View itemView) {
@@ -59,19 +64,32 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> implements
             imageView = (ImageView) itemView.findViewById(R.id.imageView);
             timeView = (TextView) itemView.findViewById(R.id.timeView);
             itemView.setOnClickListener(this);
-            fl = itemView.findViewById(R.id.frameLayout);
-
-//            fl.setOnTouchListener(new OnSwipeTouchListener(itemView.getContext()) {
+            itemView.setOnCreateContextMenuListener(this);
+//                    new View.OnCreateContextMenuListener() {
 //                @Override
-//                public void onSwipeLeft() {
-//                    super.onSwipeLeft();
-//
+//                public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+//                    menu.add("delete").setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+//                        @Override
+//                        public boolean onMenuItemClick(MenuItem item) {
+//                            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+//                            shareIntent.setType("text/plain");
+//                            shareIntent.putExtra(Intent.EXTRA_TEXT, "test"); // Вместо My message упаковываете текст, который необходимо передать
+//                            startActivity(Intent.createChooser(shareIntent, "Share text")); //
+//                            //do what u want
+//                            return true;
+//                        }
+//                    });
 //
 //                }
 //            });
 
 
+
         }
+
+
+
+
 
         @Override
         public void onClick(View v) {
@@ -82,33 +100,58 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> implements
                 mListener.onItemClick(position);
             }
 
+        }
+
+
+        private void itemClick(int position) {
+            System.out.println("Position");
+            System.out.println(position);
+            System.out.println(textView.length());
+        }
+
+
+        public void setListener(OnItemClickListener listener) {
+            mListener = listener;
+        }
+
+
+        public void setLongListener(OnLongClickListener listener) {
+            mLongListener=listener;
+        }
+
+
+
+        @Override
+        public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+            int position=getAdapterPosition();
+            mLongListener.onCreateMenuSelf(position,menu);
+
+            System.out.println("Position Long Click:"+position);
+
+//            menu.add("delete").setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+//                @Override
+//                public boolean onMenuItemClick(MenuItem item) {
+//                    System.out.println("we use delete context menu");
+//
+//
+//                    return false;
+//                }
+//            });
+
+        }
     }
 
-
-    private void itemClick(int position) {
-        System.out.println("Position");
-        System.out.println(position);
-        System.out.println(textView.length());
-    }
-
-
-    public void setListener(OnItemClickListener listener) {
+    public Adapter(List<ItemRealm> itemRealmList, OnItemClickListener listener, OnLongClickListener onLongClickListener) {
         mListener = listener;
-    }
+        mLongListener=onLongClickListener;
 
-}
-
-    public Adapter(List<ItemRealm> itemRealmList, OnItemClickListener listener) {
-        mListener = listener;
-
-        this.itemRealmList=itemRealmList;
+        this.itemRealmList = itemRealmList;
 //        for (int i=itemRealmList.size()-1;i>=0;i--){
 
 //            this.itemRealmList.add(new ItemRealm(itemRealmList.get(i).getDate(),itemRealmList.get(i).getText(),itemRealmList.get(i).getPhotoUrl604(),itemRealmList.get(i).getPhotoUrl807()));
 //        }
 
     }
-
 
 
     @Override
@@ -130,24 +173,24 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> implements
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         holder.setListener(mListener);
+        holder.setLongListener(mLongListener);
+
+
 
         holder.timeView.setText(returnDateString(itemRealmList.get(position).getDate()));
         holder.textView.setText(itemRealmList.get(position).getText());
-                if (itemRealmList.get(position).getPhotoUrl807() != null) {
-                    Picasso.with(holder.imageView.getContext()).load(itemRealmList.get(position).getPhotoUrl807()).into(holder.imageView);
-                    return;
-                }
+        if (itemRealmList.get(position).getPhotoUrl807() != null) {
+            Picasso.with(holder.imageView.getContext()).load(itemRealmList.get(position).getPhotoUrl807()).into(holder.imageView);
+            return;
+        }
 
-                if (itemRealmList.get(position).getPhotoUrl604() != null) {
-                    Picasso.with(holder.imageView.getContext()).load(itemRealmList.get(position).getPhotoUrl604()).into(holder.imageView);
-                    return;
-                } else
-                    System.out.println("NO IMAGE");
+        if (itemRealmList.get(position).getPhotoUrl604() != null) {
+            Picasso.with(holder.imageView.getContext()).load(itemRealmList.get(position).getPhotoUrl604()).into(holder.imageView);
+            return;
+        } else
+            System.out.println("NO IMAGE");
 
-            }
-
-
-
+    }
 
 
     @Override
@@ -155,7 +198,15 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> implements
         return itemRealmList.size();
     }
 
-public interface OnItemClickListener {
-    void onItemClick(int position);
-}
+    public interface OnItemClickListener {
+        void onItemClick(int position);
+    }
+
+    public interface OnLongClickListener {
+        void onCreateMenuSelf(int position,ContextMenu menu);
+    }
+
+    public interface DBSaver{
+        void dbSaver(int position,ItemRealm itemRealm);
+    }
 }

@@ -3,6 +3,10 @@ package com.example.bob_book.apivkexample;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.ShareActionProvider;
+import android.view.ActionProvider;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -19,14 +23,43 @@ import static android.widget.ImageView.ScaleType.CENTER_CROP;
 public class ActivityTwo extends AppCompatActivity {
 
     public static final String ITEM_KEY="item";
-
+    private ActionProvider mShareActionProvider;
     int date;
     LinearLayout ll;
     ItemRealm itemRealm;
     TextView textView;
     ImageView imageView;
+    String URL;
 
     private Realm realm;
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_share,menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id=item.getItemId();
+        switch (id){
+            case R.id.menu_item_share:
+                System.out.println("SHARE press");
+                Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                shareIntent.setType("text/plain");
+                shareIntent.putExtra(Intent.EXTRA_TEXT, URL); // Вместо My message упаковываете текст, который необходимо передать
+                startActivity(Intent.createChooser(shareIntent, "Share text")); //
+                return true;
+           }
+        return super.onOptionsItemSelected(item);
+    }
+
+
+//    public void setShareIntent(Intent shareIntent) {
+//        if (mShareActionProvider != null) {
+//    mShareActionProvider.setShareIntent(shareIntent);
+//        }
+//    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,10 +89,8 @@ public class ActivityTwo extends AppCompatActivity {
         imageView.setImageResource(R.color.vk_black);
         imageView.setMinimumHeight(540);
         textView.setText(itemRealm.getText());
-//        textView.setText(itemRealm.getText());
-//
-//
-//
+        URL=itemRealm.getUrl();
+
                 if (itemRealm.getPhotoUrl807() != null) {
                     Picasso.with(imageView.getContext()).load(itemRealm.getPhotoUrl807()).into(imageView);
                     return;
@@ -70,14 +101,6 @@ public class ActivityTwo extends AppCompatActivity {
                     return;
                 } else
                     System.out.println("NO IMAGE");
-
-
-
-
-
-
-
-
 
     }
 }

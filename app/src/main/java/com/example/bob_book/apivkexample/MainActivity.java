@@ -7,7 +7,12 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.ShareActionProvider;
 import android.util.Log;
+import android.view.ActionProvider;
+import android.view.ContextMenu;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -36,6 +41,7 @@ import com.vk.sdk.api.methods.VKApiWall;
 import com.vk.sdk.api.model.VKList;
 import com.vk.sdk.api.model.VKUsersArray;
 import com.vk.sdk.util.VKUtil;
+
 import android.support.v4.widget.SwipeRefreshLayout;
 
 import org.json.JSONArray;
@@ -54,17 +60,17 @@ import io.realm.RealmQuery;
 import io.realm.RealmResults;
 import io.realm.Sort;
 
-public class MainActivity extends AppCompatActivity implements Serializable{
+public class MainActivity extends AppCompatActivity implements Serializable {
 
     private SwipeRefreshLayout mSwipeRefreshLayout;
-
-
+    private ActionProvider mShareActionProvider;
+    private String UrlGroup = "https://vk.com/act54_lox?w=wall-71302810_";
     private String[] scope = new String[]{VKScope.EMAIL, VKScope.FRIENDS, VKScope.WALL};
     private ListView listVIew;
     private int item_count = 20;
     private RecyclerView rv;
     private Realm realm;
-    Button button;
+
 
     Response.ApiClass apiClass;
 
@@ -77,12 +83,38 @@ public class MainActivity extends AppCompatActivity implements Serializable{
 
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        switch (id) {
+            case R.id.menu_del_last:
+                realm.executeTransaction(new Realm.Transaction() {
+                    @Override
+                    public void execute(Realm realm) {
+                        realm.where(ItemRealm.class).findAll().last(null).deleteFromRealm();
+                    }
+                });
+                return true;
+            case R.id.menu_refresh:
+                callBackVk();
+                return true;
+
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
         rv = (RecyclerView) findViewById(R.id.rv);
-        mSwipeRefreshLayout= (SwipeRefreshLayout) findViewById(R.id.swiperefresh);
+        mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swiperefresh);
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
@@ -91,7 +123,6 @@ public class MainActivity extends AppCompatActivity implements Serializable{
                 mSwipeRefreshLayout.setRefreshing(false);
             }
         });
-        button= (Button) findViewById(R.id.button_del);
 
 
         LinearLayoutManager llm = new LinearLayoutManager(this);
@@ -103,30 +134,11 @@ public class MainActivity extends AppCompatActivity implements Serializable{
         Realm.init(this);
 
         realm = Realm.getDefaultInstance();
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-//
-                realm.executeTransaction(new Realm.Transaction() {
-                    @Override
-                    public void execute(Realm realm) {
-//                        realm.beginTransaction();
-                        realm.where(ItemRealm.class).findAll().last(null).deleteFromRealm();
-//                        realm.commitTransaction();
-                    }
-                });
-
-
-                Toast.makeText(getApplicationContext(), "Del last news", Toast.LENGTH_SHORT).show();
-
-            }
-        });
 
         //or get Activity
         if (!VKSdk.isLoggedIn()) {
             VKSdk.login(this, scope);
-        }
-        else
+        } else
             callBackVk();
 
 
@@ -157,8 +169,8 @@ public class MainActivity extends AppCompatActivity implements Serializable{
                     public void onComplete(VKResponse response) {
                         System.out.println("Vhodim v onComplete response");
                         super.onComplete(response);
-                        Gson gson=new Gson();
-                        apiClass=gson.fromJson(response.responseString, Response.ApiClass.class);
+                        Gson gson = new Gson();
+                        apiClass = gson.fromJson(response.responseString, Response.ApiClass.class);
 
 //                        for (int i=0;i<apiClass.response.items.size();i++){
 //                            System.out.println("iteration api class:"+i+" "+apiClass.response.items.get(i).date);
@@ -181,11 +193,7 @@ public class MainActivity extends AppCompatActivity implements Serializable{
         initializeAdapter();
 
 
-
     }
-
-
-
 
 
     @Override
@@ -209,24 +217,46 @@ public class MainActivity extends AppCompatActivity implements Serializable{
             super.onActivityResult(requestCode, resultCode, data);
         }
     }
-    private void initializeAdapter(){
-        final RealmResults<ItemRealm> itemRealmList=realm.where(ItemRealm.class).findAll().sort("date",Sort.DESCENDING);
+
+    private void initializeAdapter() {
+        final RealmResults<ItemRealm> itemRealmList = realm.where(ItemRealm.class).findAll().sort("date", Sort.DESCENDING);
 //        List<ItemRealm> itemRealmList1=itemRealmList;
-        Adapter adapter=new Adapter(itemRealmList, new Adapter.OnItemClickListener() {
-            @Override
-            public void onItemClick(int position) {
-                Intent i = new Intent(MainActivity.this, ActivityTwo.class);
-                String innerDate= String.valueOf(itemRealmList.get(position).getDate());
-                i.putExtra(ActivityTwo.ITEM_KEY,innerDate);
+        Adapter adapter = new Adapter(itemRealmList,
+                new Adapter.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(int position) {
+                        Intent i = new Intent(MainActivity.this, ActivityTwo.class);
+                        String innerDate = String.valueOf(itemRealmList.get(position).getDate());
+                        i.putExtra(ActivityTwo.ITEM_KEY, innerDate);
 // i.putExtra(ActivityTwo.ITEM_KEY,itemRealmList.get(position));
 
-                startActivity(i);
-                System.out.println();
+                        startActivity(i);
+                        System.out.println();
+                    }
+                }, new Adapter.OnLongClickListener() {
+
+            @Override
+            public void onCreateMenuSelf(final int position, ContextMenu menu) {
+                menu.add("delete").setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        System.out.println("we use delete context menu");
+                        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                        shareIntent.setType("text/plain");
+                        shareIntent.putExtra(Intent.EXTRA_TEXT, itemRealmList.get(position).getUrl());
+                        startActivity(Intent.createChooser(shareIntent, "Share text")); //
+                        return false;
+                    }
+                });
             }
-        });
+
+
+        }
+        );
         rv.setAdapter(adapter);
 
     }
+
 
     private void inicializeRealmBase() {
         System.out.println("inicializeRealmBase Start");
@@ -235,48 +265,50 @@ public class MainActivity extends AppCompatActivity implements Serializable{
 //        realm.beginTransaction();
 //        realm.deleteAll();
 //        realm.commitTransaction();
-        int tmpDate=0;
+        int tmpDate = 0;
 
-       ItemRealm itemRealmLast=realm.where(ItemRealm.class).findAll().last(null);
+        ItemRealm itemRealmLast = realm.where(ItemRealm.class).findAll().last(null);
         System.out.println("Last position:");
 
-        if (apiClass!=null){
+        if (apiClass != null) {
             System.out.println("11111");
-        for(int i=apiClass.response.items.size()-1;i>=0;i--){
-            System.out.println("Iteration: "+i);
-            //
-            tmpDate=apiClass.response.items.get(i).date;
+            for (int i = apiClass.response.items.size() - 1; i >= 0; i--) {
+                System.out.println("Iteration: " + i);
+                //
+                tmpDate = apiClass.response.items.get(i).date;
 
-            if (itemRealmLast!=null){
+                if (itemRealmLast != null) {
 
-                if(itemRealmLast.getDate()>=tmpDate){
-                    System.out.println("we use BREAK "+i );
+                    if (itemRealmLast.getDate() >= tmpDate) {
+                        System.out.println("we use BREAK " + i);
+                        continue;
+                    }
+                }
+
+
+                if (apiClass.response.items.get(i).attachments == null) {
+                    System.out.println("Attachments=null elements: " + i);
                     continue;
                 }
+                if (apiClass.response.items.get(i).attachments.get(0).photo == null) {
+                    System.out.println("photo is null Elements: " + i);
+                    continue;
+                }
+                realm.beginTransaction();
+
+                ItemRealm itemRealm = realm.createObject(ItemRealm.class);
+                itemRealm.setDate(apiClass.response.items.get(i).date);
+                itemRealm.setText(apiClass.response.items.get(i).text);
+                itemRealm.setPhotoUrl604(apiClass.response.items.get(i).attachments.get(0).photo.photo604);
+                itemRealm.setPhotoUrl807(apiClass.response.items.get(i).attachments.get(0).photo.photo807);
+                System.out.println("URL_POSTS: " + UrlGroup + apiClass.response.items.get(i).id);
+                itemRealm.setUrl(UrlGroup + apiClass.response.items.get(i).id);
+
+                realm.commitTransaction();
             }
-
-
-            if (apiClass.response.items.get(i).attachments==null){
-                System.out.println("Attachments=null elements: "+i);
-                continue;
-            }
-            if(apiClass.response.items.get(i).attachments.get(0).photo==null){
-                System.out.println("photo is null Elements: " +i);
-                continue;
-            }
-            realm.beginTransaction();
-
-            ItemRealm itemRealm=realm.createObject(ItemRealm.class);
-            itemRealm.setDate(apiClass.response.items.get(i).date);
-            itemRealm.setText(apiClass.response.items.get(i).text);
-            itemRealm.setPhotoUrl604(apiClass.response.items.get(i).attachments.get(0).photo.photo604);
-            itemRealm.setPhotoUrl807(apiClass.response.items.get(i).attachments.get(0).photo.photo807);
-
-            realm.commitTransaction();
         }
-        }
-        RealmResults<ItemRealm> itemRealmsList=realm.where(ItemRealm.class).findAll().sort("date", Sort.DESCENDING);
-        apiClass=null;
+        RealmResults<ItemRealm> itemRealmsList = realm.where(ItemRealm.class).findAll().sort("date", Sort.DESCENDING);
+        apiClass = null;
 //        for (int i=0;i<itemRealmsList.size();i++){
 //            System.out.println("item position: "+i+ " they id: "+itemRealmsList.get(i).getDate());
 //
@@ -286,8 +318,6 @@ public class MainActivity extends AppCompatActivity implements Serializable{
 //        realm.beginTransaction();
 //        realm.deleteAll();
 //        realm.commitTransaction();
-
-
 
 
     }

@@ -16,6 +16,7 @@ import io.realm.annotations.Required;
 
 public class ItemRealm extends RealmObject implements Serializable {
 
+    private String Url;
     private String text;
     private int date;
     private String photoUrl604;
@@ -28,6 +29,18 @@ public class ItemRealm extends RealmObject implements Serializable {
 //        this.photoUrl807=photoUrl807;
 //    }
 
+
+    public String getUrl() {
+        return Url;
+    }
+
+    public void setUrl(String url) {
+        Url = url;
+    }
+
+    public void setDate(int date) {
+        this.date = date;
+    }
 
     public String getPhotoUrl604() {
         return photoUrl604;
