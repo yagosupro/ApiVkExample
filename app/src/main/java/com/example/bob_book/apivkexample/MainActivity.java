@@ -2,8 +2,8 @@ package com.example.bob_book.apivkexample;
 
 import android.app.Dialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Parcelable;
-import android.os.PersistableBundle;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -16,6 +16,7 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.example.bob_book.apivkexample.Model.EventBusModel.EventDate;
 import com.example.bob_book.apivkexample.Model.EventBusModel.EventDialog;
 import com.example.bob_book.apivkexample.Model.EventBusModel.EventMessage;
@@ -34,9 +35,12 @@ import com.vk.sdk.api.VKResponse;
 import com.vk.sdk.api.methods.VKApiGroups;
 import com.vk.sdk.api.methods.VKApiWall;
 import com.vk.sdk.api.model.VKList;
+
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
+
 import java.io.Serializable;
+
 import io.realm.Realm;
 import io.realm.RealmResults;
 import io.realm.Sort;
@@ -46,17 +50,17 @@ public class MainActivity extends AppCompatActivity implements Serializable {
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private String UrlGroup = "https://vk.com/act54_lox?w=wall-71302810_";
     private String[] scope = new String[]{VKScope.EMAIL, VKScope.FRIENDS, VKScope.WALL};
-    private ListView listVIew;
     private int item_count = 20;
     private RecyclerView rv;
     private Realm realm;
     Response.ApiClass apiClass;
     LinearLayoutManager llm;
+    Button btnSave;
+    Button btnLoad;
+    Adapter adapter;
 
     private final String KEY_RECYCLER_STATE = "recycler_state";
-    private static Bundle mBundleRecyclerViewState;
 
-    Parcelable mLayoutManagerState;
 
     private Parcelable recyclerViewState;
 
@@ -64,31 +68,12 @@ public class MainActivity extends AppCompatActivity implements Serializable {
     protected void onPause() {
         super.onPause();
         System.out.println("onPause");
-
-        recyclerViewState = rv.getLayoutManager().onSaveInstanceState();//save
-
-//        mBundleRecyclerViewState = new Bundle();
-//        Parcelable listState = rv.getLayoutManager().onSaveInstanceState();
-//        mBundleRecyclerViewState.putParcelable(KEY_RECYCLER_STATE, mLayoutManagerState);
-//        recyclerViewState = rv.getLayoutManager().onSaveInstanceState();//save
-//        mLayoutManagerState=llm.onSaveInstanceState();
-
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         System.out.println("onResume");
-//        rv.getLayoutManager().onRestoreInstanceState(recyclerViewState);//restore
-//        rv.getLayoutManager().onRestoreInstanceState(recyclerViewState);//restore
-
-//        if (mLayoutManagerState != null) {
-//            rv.getLayoutManager().onRestoreInstanceState(mLayoutManagerState);
-//        }
-//        if (mBundleRecyclerViewState != null) {
-//            Parcelable listState = mBundleRecyclerViewState.getParcelable(KEY_RECYCLER_STATE);
-//            rv.getLayoutManager().onRestoreInstanceState(listState);
-//        }
     }
 
     @Override
@@ -96,18 +81,14 @@ public class MainActivity extends AppCompatActivity implements Serializable {
         super.onSaveInstanceState(outState);
         System.out.println("onSaveInstanceState");
         recyclerViewState = rv.getLayoutManager().onSaveInstanceState();//save
-//        mLayoutManagerState=llm.onSaveInstanceState();
-//        outState.putParcelable(KEY_RECYCLER_STATE,mLayoutManagerState);
-
-
+        outState.putParcelable(KEY_RECYCLER_STATE,recyclerViewState);
     }
 
     @Override
     public void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
         System.out.println("onRestoreInstanceState");
-//        mLayoutManagerState=savedInstanceState.getParcelable(KEY_RECYCLER_STATE);
-//        llm.onRestoreInstanceState(mLayoutManagerState);
+        recyclerViewState=savedInstanceState.getParcelable(KEY_RECYCLER_STATE);
 
     }
 
@@ -127,18 +108,15 @@ public class MainActivity extends AppCompatActivity implements Serializable {
         startActivity(Intent.createChooser(shareIntent, "Share text")); //
     }
 
-    //We can create other group too
-    //But need change architecture create base
-
 
     @Subscribe
-    public void onCreateCustomDialog(EventDialog message){
-        final Dialog dialog=new Dialog(this);
+    public void onCreateCustomDialog(EventDialog message) {
+        final Dialog dialog = new Dialog(this);
         dialog.setTitle("FirstDialog");
         dialog.setContentView(R.layout.dialog_view);
-        TextView textView= (TextView) dialog.findViewById(R.id.dialogTextView);
-        Button buttonOk= (Button) dialog.findViewById(R.id.dialogOk);
-        Button buttonCancel= (Button) dialog.findViewById(R.id.dialogCancel);
+        TextView textView = (TextView) dialog.findViewById(R.id.dialogTextView);
+        Button buttonOk = (Button) dialog.findViewById(R.id.dialogOk);
+        Button buttonCancel = (Button) dialog.findViewById(R.id.dialogCancel);
         buttonOk.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -155,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements Serializable {
 
         dialog.show();
     }
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -201,14 +180,40 @@ public class MainActivity extends AppCompatActivity implements Serializable {
 
         setContentView(R.layout.activity_main);
         rv = (RecyclerView) findViewById(R.id.rv);
+        btnSave = (Button) findViewById(R.id.save);
+        btnLoad = (Button) findViewById(R.id.load);
         mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swiperefresh);
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
                 callBackVk();
                 mSwipeRefreshLayout.setRefreshing(false);
+                llm.scrollToPosition(0);
             }
         });
+
+        btnSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                saveAdapterToShPrefInJson(llm);
+//                recyclerViewState = rv.getLayoutManager().onSaveInstanceState();//save
+//                positionIndex=llm.findFirstVisibleItemPosition();
+//                View startView=rv.getChildAt(0);
+//                topView = (startView == null) ? 0 : (startView.getTop() - rv.getPaddingTop());
+
+            }
+        });
+        btnLoad.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                lm=loadAdapterToShPrefInJson();
+
+//                rv.getLayoutManager().onRestoreInstanceState(recyclerViewState);//restore
+//                    llm.scrollToPositionWithOffset(positionIndex,topView);
+
+            }
+        });
+
 
         llm = new LinearLayoutManager(this);
         rv.setLayoutManager(llm);
@@ -218,12 +223,12 @@ public class MainActivity extends AppCompatActivity implements Serializable {
 
         realm = Realm.getDefaultInstance();
 
+        SharedPreferences mPrefs = getPreferences(MODE_PRIVATE);
 
-
-            if (!VKSdk.isLoggedIn()) {
-                VKSdk.login(this, scope);
-            } else
-                callBackVk();
+        if (!VKSdk.isLoggedIn()) {
+            VKSdk.login(this, scope);
+        } else
+            callBackVk();
 
 
 
@@ -255,14 +260,14 @@ public class MainActivity extends AppCompatActivity implements Serializable {
                         Gson gson = new Gson();
                         apiClass = gson.fromJson(response.responseString, Response.ApiClass.class);
                         inicializeRealmBase();
-                        initializeAdapter();
+                        initializeAdapter(adapter);
                     }
                 });
             }
         });
 
         inicializeRealmBase();
-        initializeAdapter();
+        initializeAdapter(adapter);
     }
 
     @Override
@@ -283,12 +288,12 @@ public class MainActivity extends AppCompatActivity implements Serializable {
         }
     }
 
-    private void initializeAdapter() {
+    private void initializeAdapter(Adapter adapter) {
         final RealmResults<ItemRealm> itemRealmList = realm.where(ItemRealm.class).findAll().sort("date", Sort.DESCENDING);
-        Adapter adapter = new Adapter(itemRealmList);
-        rv.setAdapter(adapter);
+        this.adapter = new Adapter(itemRealmList);
+        rv.setAdapter(this.adapter);
+        //why it work only in here?
         rv.getLayoutManager().onRestoreInstanceState(recyclerViewState);//restore
-
     }
 
     private void inicializeRealmBase() {
