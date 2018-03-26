@@ -5,5 +5,22 @@
     <item
         android:id="@+id/menu_item_share"
         android:title="Share"
-        app:showAsAction="always"/>
+        app:showAsAction="always">
+    <menu>
+        <item
+
+            android:id="@+id/menu_del_last"
+            android:orderInCategory="1"
+            android:title="del_last"
+            app:showAsAction="always" />
+        <item
+
+            android:id="@+id/menu_refresh"
+            android:orderInCategory="2"
+            android:title="refresh"
+            app:showAsAction="always" />
+
+
+    </menu>
+    </item>
 </menu>

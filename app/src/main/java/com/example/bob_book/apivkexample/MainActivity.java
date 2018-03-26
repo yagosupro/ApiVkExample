@@ -8,11 +8,14 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
+import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -45,7 +48,7 @@ import io.realm.Realm;
 import io.realm.RealmResults;
 import io.realm.Sort;
 
-public class MainActivity extends AppCompatActivity implements Serializable {
+public class MainActivity extends AppCompatActivity implements Serializable,View.OnCreateContextMenuListener {
 
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private String UrlGroup = "https://vk.com/act54_lox?w=wall-71302810_";
@@ -58,6 +61,8 @@ public class MainActivity extends AppCompatActivity implements Serializable {
     Button btnSave;
     Button btnLoad;
     Adapter adapter;
+    ImageButton btnMenuDrawler;
+    ImageButton btnMenuSetting;
 
     private final String KEY_RECYCLER_STATE = "recycler_state";
 
@@ -146,31 +151,71 @@ public class MainActivity extends AppCompatActivity implements Serializable {
         super.onStop();
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
+//    @Override
+//    public boolean onCreateOptionsMenu(Menu menu) {
+//        getMenuInflater().inflate(R.id.menu_setting, menu);
+//        return true;
+//    }
+//
+//    @Override
+//    public boolean onOptionsItemSelected(MenuItem item) {
+//        int id = item.getItemId();
+//        switch (id) {
+//            case R.id.menu_del_last:
+//                realm.executeTransaction(new Realm.Transaction() {
+//                    @Override
+//                    public void execute(Realm realm) {
+//                        realm.where(ItemRealm.class).findAll().last(null).deleteFromRealm();
+//                    }
+//                });
+//                return true;
+//            case R.id.menu_refresh:
+//                callBackVk();
+//                return true;
+//
+//        }
+//        return super.onOptionsItemSelected(item);
+//    }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        switch (id) {
-            case R.id.menu_del_last:
-                realm.executeTransaction(new Realm.Transaction() {
+    private void showPopupMenuSetting(View v){
+        PopupMenu popupMenu=new PopupMenu(this,v);
+        popupMenu.inflate(R.menu.popum_menu);
+        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                switch (item.getItemId()){
+                    case R.id.refresh:
+                        System.out.println("refresh menu_setting");
+                        callBackVk();
+
+                        return true;
+                    case R.id.deletLast:
+                        System.out.println("deletLast menu_setting");
+                        realm.executeTransaction(new Realm.Transaction() {
                     @Override
                     public void execute(Realm realm) {
                         realm.where(ItemRealm.class).findAll().last(null).deleteFromRealm();
                     }
                 });
-                return true;
-            case R.id.menu_refresh:
-                callBackVk();
-                return true;
+                        return true;
+                    default:
+                        return false;
+                }
 
-        }
-        return super.onOptionsItemSelected(item);
+
+            }
+        });
+        popupMenu.setOnDismissListener(new PopupMenu.OnDismissListener() {
+
+            @Override
+            public void onDismiss(PopupMenu menu) {
+
+            }
+        });
+        popupMenu.show();
     }
+
+
 
     ////////////////////////////////////////////////////////////////////////////////////////
     @Override
@@ -180,6 +225,8 @@ public class MainActivity extends AppCompatActivity implements Serializable {
 
         setContentView(R.layout.activity_main);
         rv = (RecyclerView) findViewById(R.id.rv);
+        btnMenuDrawler= (ImageButton) findViewById(R.id.menu_drawing);
+        btnMenuSetting= (ImageButton) findViewById(R.id.menu_setting);
         btnSave = (Button) findViewById(R.id.save);
         btnLoad = (Button) findViewById(R.id.load);
         mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swiperefresh);
@@ -189,6 +236,16 @@ public class MainActivity extends AppCompatActivity implements Serializable {
                 callBackVk();
                 mSwipeRefreshLayout.setRefreshing(false);
                 llm.scrollToPosition(0);
+            }
+        });
+
+
+
+        btnMenuSetting.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                System.out.println("Setting push");
+                showPopupMenuSetting(v);
             }
         });
 
